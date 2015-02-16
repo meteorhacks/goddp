@@ -52,17 +52,17 @@ func (s *Server) handler(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 
-		fmt.Println("Message =>", msg)
+		fmt.Println("Message =>", *msg)
 
 		switch {
 		case msg.Msg == "ping":
-			go s.handlePing(ws, &msg)
+			go s.handlePing(ws, msg)
 		case msg.Msg == "connect":
-			go s.handleConnect(ws, &msg)
+			go s.handleConnect(ws, msg)
 		case msg.Msg == "method":
-			go s.handleMethod(ws, &msg)
+			go s.handleMethod(ws, msg)
 		default:
-			fmt.Println("Error: unknown ddp message", msg)
+			fmt.Println("Error: unknown ddp message", *msg)
 		}
 	}
 }
@@ -121,21 +121,21 @@ func (s *Server) handleMethod(c *websocket.Conn, m *Message) {
 	}
 }
 
-func readMessage(ws *websocket.Conn) (Message, error) {
+func readMessage(ws *websocket.Conn) (*Message, error) {
 	t, str, err := ws.ReadMessage()
-	msg := Message{}
+	msg := &Message{}
 
 	if err != nil {
 		// error reading message
-		return msg, err
+		return nil, err
 	}
 
 	if t != 1 {
 		// ignore binary data
 		err = errors.New("Error: DDP does not supports binary streams yet.")
-		return msg, err
+		return nil, err
 	}
 
-	err = json.Unmarshal(str, &msg)
-	return msg, err
+	err = json.Unmarshal(str, msg)
+	return msg, nil
 }
