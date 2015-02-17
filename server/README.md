@@ -1,18 +1,18 @@
-# Go DDP
+# Go DDP Server
 
-DDP server and client implemented with go.
+DDP server implemented with go.
 
-## Server Example
+## Example
 
 ```go
 package main
 
 import (
-  "github.com/meteorhacks/goddp"
+  "github.com/meteorhacks/goddp/server"
 )
 
 func main() {
-  server := goddp.NewServer()
+  server := server.New()
   server.Method("hello", methodHandler)
   server.Listen(":1337")
 }

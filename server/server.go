@@ -31,12 +31,11 @@ func (s *Server) Method(n string, h MethodHandler) {
 }
 
 func (s *Server) Listen(ipPort string) {
-	http.HandleFunc("/websocket", s.handler)
+	http.HandleFunc("/websocket", s.Handler)
 	http.ListenAndServe(ipPort, nil)
 }
 
-// create websocket connection from http handler and runs the websocket handler
-func (s *Server) handler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) Handler(w http.ResponseWriter, r *http.Request) {
 	ws, err := s.upgrader.Upgrade(w, r, nil)
 
 	if err != nil {
