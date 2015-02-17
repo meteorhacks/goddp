@@ -7,11 +7,11 @@
 package main
 
 import (
-  "github.com/meteorhacks/goddp/server"
+  "github.com/meteorhacks/goddp"
 )
 
 func main() {
-  server := server.New()
+  server := goddp.NewServer()
   server.Method("hello", methodHandler)
   server.Listen(":1337")
 }
