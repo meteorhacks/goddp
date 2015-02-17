@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/websocket"
+	"github.com/meteorhacks/goddp/utils/random"
 )
 
 type Server struct {
@@ -70,7 +71,7 @@ func (s *Server) handler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleConnect(c *websocket.Conn, m *Message) {
 	err := c.WriteJSON(map[string]string{
 		"msg":     "connected",
-		"session": randomId(17),
+		"session": random.Id(17),
 	})
 
 	if err != nil {
