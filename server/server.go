@@ -52,8 +52,6 @@ func (s *Server) Handler(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 
-		fmt.Println("Message =>", *msg)
-
 		switch {
 		case msg.Msg == "ping":
 			go s.handlePing(ws, msg)
