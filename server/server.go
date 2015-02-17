@@ -47,7 +47,6 @@ func (s *Server) Handler(w http.ResponseWriter, r *http.Request) {
 		msg, err := readMessage(ws)
 
 		if err != nil {
-			fmt.Println("Error: could not read from websocket connection")
 			ws.Close()
 			break
 		}
@@ -61,6 +60,8 @@ func (s *Server) Handler(w http.ResponseWriter, r *http.Request) {
 			go s.handleMethod(ws, msg)
 		default:
 			fmt.Println("Error: unknown ddp message", *msg)
+			ws.Close()
+			break
 		}
 	}
 }
