@@ -1,6 +1,18 @@
 package server
 
-type MethodHandler func([]interface{}) (interface{}, error)
+type Request interface {
+	ReadMessage() (int, []byte, error)
+}
+
+type Response interface {
+	WriteJSON(interface{}) error
+}
+
+type Handler interface {
+	handle(Response, Message) error
+}
+
+type MethodFn func(MethodContext)
 
 // This has the all the possible fields a DDP message can have
 type Message struct {
@@ -8,7 +20,7 @@ type Message struct {
 	Session string        `json:"session"`
 	Version string        `json:"version"`
 	Support []string      `json:"support"`
-	Id      string        `json:"id"`
+	ID      string        `json:"id"`
 	Method  string        `json:"method"`
 	Params  []interface{} `json:"params"`
 	Result  string        `json:"result"`
