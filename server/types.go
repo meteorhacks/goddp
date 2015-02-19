@@ -8,11 +8,8 @@ type Response interface {
 	WriteJSON(interface{}) error
 }
 
-type Handler interface {
-	handle(Response, Message) error
-}
-
 type MethodFn func(MethodContext)
+type Handler func(*Server, Response, Message) error
 
 // This has the all the possible fields a DDP message can have
 type Message struct {

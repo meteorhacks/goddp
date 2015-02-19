@@ -3,16 +3,12 @@ package server
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/gorilla/websocket"
+	"github.com/meteorhacks/goddp/utils/random"
 )
-
-type Server struct {
-	handlers map[string]Handler
-	methods  map[string]MethodFn
-	upgrader websocket.Upgrader
-}
 
 func New() Server {
 	s := Server{}
@@ -22,13 +18,12 @@ func New() Server {
 		WriteBufferSize: 1024,
 	}
 
-	s.handlers = map[string]Handler{
-		"connect": NewConnectHandler(s),
-		"ping":    NewPingHandler(s),
-		"method":  NewMethodHandler(s),
-	}
-
 	return s
+}
+
+type Server struct {
+	methods  map[string]MethodFn
+	upgrader websocket.Upgrader
 }
 
 func (s *Server) Listen(addr string) {
@@ -48,15 +43,20 @@ func (s *Server) Handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for {
-		msg, err := readMessage(req)
+		msg, err := readMessage(ws)
 
 		if err != nil {
 			break
 		}
 
-		if h, ok := s.handlers[msg.Msg]; ok {
-			go h.handle(res, msg)
-		} else {
+		switch msg.Msg {
+		case "connect":
+			handleConnect(s, ws, msg)
+		case "ping":
+			handlePing(s, ws, msg)
+		case "method":
+			handleMethod(s, ws, msg)
+		default:
 			// TODO => send "error" ddp message
 			break
 		}
@@ -83,4 +83,37 @@ func readMessage(req Request) (Message, error) {
 	}
 
 	return msg, nil
+}
+
+func handleConnect(s *Server, res Response, m Message) error {
+	return res.WriteJSON(map[string]string{
+		"msg":     "connected",
+		"session": random.Id(17),
+	})
+}
+
+func handleMethod(s *Server, res Response, m Message) error {
+	fn, ok := s.methods[m.Method]
+
+	if !ok {
+		err := errors.New(fmt.Sprintf("method %s not found", m.Method))
+		return err
+	}
+
+	ctx := NewMethodContext(m, res)
+	go fn(ctx)
+
+	return nil
+}
+
+func handlePing(s *Server, res Response, m Message) error {
+	msg := map[string]string{
+		"msg": "pong",
+	}
+
+	if m.ID != "" {
+		msg["id"] = m.ID
+	}
+
+	return res.WriteJSON(msg)
 }
