@@ -12,12 +12,20 @@ import (
 )
 
 func main() {
-  server := server.New()
-  server.Method("hello", methodHandler)
-  server.Listen(":1337")
+  s := server.New()
+  s.Method("double", handler)
+  s.Listen(":1337")
 }
 
-func methodHandler(p []interface{}) (interface{}, error) {
-  return "result", nil
+func handler(ctx server.MethodContext) {
+  n, ok := ctx.Args[0].(float64)
+
+  if !ok {
+    ctx.SendError("invalid parameters")
+  } else {
+    ctx.SendResult(n * 2)
+  }
+
+  ctx.SendUpdated()
 }
 ```

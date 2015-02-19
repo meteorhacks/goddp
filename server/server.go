@@ -10,36 +10,35 @@ import (
 	"github.com/meteorhacks/goddp/utils/random"
 )
 
-type Server struct {
-	methods  map[string]MethodHandler
-	upgrader websocket.Upgrader
-}
-
 func New() Server {
-	server := Server{}
-	server.methods = make(map[string]MethodHandler)
-	server.upgrader = websocket.Upgrader{
+	s := Server{}
+	s.methods = make(map[string]MethodFn)
+	s.upgrader = websocket.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
 	}
 
-	return server
+	return s
 }
 
-func (s *Server) Method(n string, h MethodHandler) {
-	s.methods[n] = h
+type Server struct {
+	methods  map[string]MethodFn
+	upgrader websocket.Upgrader
 }
 
-func (s *Server) Listen(ipPort string) {
+func (s *Server) Listen(addr string) {
 	http.HandleFunc("/websocket", s.Handler)
-	http.ListenAndServe(ipPort, nil)
+	http.ListenAndServe(addr, nil)
+}
+
+func (s *Server) Method(name string, fn MethodFn) {
+	s.methods[name] = fn
 }
 
 func (s *Server) Handler(w http.ResponseWriter, r *http.Request) {
 	ws, err := s.upgrader.Upgrade(w, r, nil)
-
 	if err != nil {
-		fmt.Println("Error: could not creating websocket connection")
+		// TODO => handle non-websocket requests
 		return
 	}
 
@@ -47,94 +46,74 @@ func (s *Server) Handler(w http.ResponseWriter, r *http.Request) {
 		msg, err := readMessage(ws)
 
 		if err != nil {
-			ws.Close()
 			break
 		}
 
-		switch {
-		case msg.Msg == "ping":
-			go s.handlePing(ws, msg)
-		case msg.Msg == "connect":
-			go s.handleConnect(ws, msg)
-		case msg.Msg == "method":
-			go s.handleMethod(ws, msg)
+		switch msg.Msg {
+		case "connect":
+			handleConnect(s, ws, msg)
+		case "ping":
+			handlePing(s, ws, msg)
+		case "method":
+			handleMethod(s, ws, msg)
 		default:
-			fmt.Println("Error: unknown ddp message", *msg)
-			ws.Close()
+			// TODO => send "error" ddp message
 			break
 		}
 	}
+
+	ws.Close()
 }
 
-func (s *Server) handleConnect(c *websocket.Conn, m *Message) {
-	err := c.WriteJSON(map[string]string{
-		"msg":     "connected",
-		"session": random.Id(17),
-	})
+func readMessage(req Request) (Message, error) {
+	t, str, err := req.ReadMessage()
+	msg := Message{}
 
 	if err != nil {
-		fmt.Println(err)
-	}
-}
-
-func (s *Server) handlePing(c *websocket.Conn, m *Message) {
-	if m.Id != "" {
-		err := c.WriteJSON(map[string]string{
-			"msg": "pong",
-			"id":  m.Id,
-		})
-
-		if err != nil {
-			fmt.Println(err)
-		}
-	} else {
-		err := c.WriteJSON(map[string]string{
-			"msg": "pong",
-		})
-
-		if err != nil {
-			fmt.Println(err)
-		}
-	}
-}
-
-func (s *Server) handleMethod(c *websocket.Conn, m *Message) {
-	res, _ := s.methods[m.Method](m.Params)
-	err := c.WriteJSON(map[string]interface{}{
-		"msg":    "result",
-		"id":     m.Id,
-		"result": res,
-	})
-
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	err = c.WriteJSON(map[string]interface{}{
-		"msg":     "updated",
-		"methods": []string{m.Id},
-	})
-
-	if err != nil {
-		fmt.Println(err)
-	}
-}
-
-func readMessage(ws *websocket.Conn) (*Message, error) {
-	t, str, err := ws.ReadMessage()
-	msg := &Message{}
-
-	if err != nil {
-		// error reading message
-		return nil, err
+		return msg, err
 	}
 
 	if t != 1 {
-		// ignore binary data
-		err = errors.New("Error: DDP does not supports binary streams yet.")
-		return nil, err
+		err = errors.New("DDP does not supports binary streams yet")
+		return msg, err
 	}
 
-	err = json.Unmarshal(str, msg)
+	if err := json.Unmarshal(str, &msg); err != nil {
+		return msg, err
+	}
+
 	return msg, nil
+}
+
+func handleConnect(s *Server, res Response, m Message) error {
+	return res.WriteJSON(map[string]string{
+		"msg":     "connected",
+		"session": random.Id(17),
+	})
+}
+
+func handleMethod(s *Server, res Response, m Message) error {
+	fn, ok := s.methods[m.Method]
+
+	if !ok {
+		err := errors.New(fmt.Sprintf("method %s not found", m.Method))
+		return err
+	}
+
+	ctx := NewMethodContext(m, res)
+	go fn(ctx)
+
+	return nil
+}
+
+func handlePing(s *Server, res Response, m Message) error {
+	msg := map[string]string{
+		"msg": "pong",
+	}
+
+	if m.ID != "" {
+		msg["id"] = m.ID
+	}
+
+	return res.WriteJSON(msg)
 }
