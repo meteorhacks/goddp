@@ -26,9 +26,9 @@ type Server struct {
 	upgrader websocket.Upgrader
 }
 
-func (s *Server) Listen(addr string) {
+func (s *Server) Listen(addr string) error {
 	http.HandleFunc("/websocket", s.Handler)
-	http.ListenAndServe(addr, nil)
+	return http.ListenAndServe(addr, nil)
 }
 
 func (s *Server) Method(name string, fn MethodFn) {
