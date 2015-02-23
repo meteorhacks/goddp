@@ -2,21 +2,23 @@ package server
 
 import (
 	"errors"
+
+	"golang.org/x/net/websocket"
 )
 
 type MethodContext struct {
 	ID      string
 	Args    []interface{}
-	Res     Response
+	Conn    *websocket.Conn
 	Done    bool
 	Updated bool
 }
 
-func NewMethodContext(m Message, res Response) MethodContext {
+func NewMethodContext(m Message, ws *websocket.Conn) MethodContext {
 	ctx := MethodContext{}
 	ctx.ID = m.ID
 	ctx.Args = m.Params
-	ctx.Res = res
+	ctx.Conn = ws
 	return ctx
 }
 
@@ -27,7 +29,7 @@ func (ctx *MethodContext) SendResult(r interface{}) error {
 	}
 
 	ctx.Done = true
-	return ctx.Res.WriteJSON(map[string]interface{}{
+	return websocket.JSON.Send(ctx.Conn, map[string]interface{}{
 		"msg":    "result",
 		"id":     ctx.ID,
 		"result": r,
@@ -41,7 +43,7 @@ func (ctx *MethodContext) SendError(e string) error {
 	}
 
 	ctx.Done = true
-	return ctx.Res.WriteJSON(map[string]interface{}{
+	return websocket.JSON.Send(ctx.Conn, map[string]interface{}{
 		"msg": "result",
 		"id":  ctx.ID,
 		"error": map[string]string{
@@ -57,7 +59,7 @@ func (ctx *MethodContext) SendUpdated() error {
 	}
 
 	ctx.Updated = true
-	return ctx.Res.WriteJSON(map[string]interface{}{
+	return websocket.JSON.Send(ctx.Conn, map[string]interface{}{
 		"msg":     "updated",
 		"methods": []string{ctx.ID},
 	})

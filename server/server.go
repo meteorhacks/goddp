@@ -1,35 +1,30 @@
 package server
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 
-	"github.com/gorilla/websocket"
 	"github.com/meteorhacks/goddp/utils/random"
+	"golang.org/x/net/websocket"
 )
 
 func New() Server {
 	s := Server{}
+	s.wsserver = websocket.Server{Handler: s.wsHandler, Handshake: handshake}
 	s.methods = make(map[string]MethodFn)
-	s.upgrader = websocket.Upgrader{
-		ReadBufferSize:  1024,
-		WriteBufferSize: 1024,
-		CheckOrigin:     checkOrigin,
-	}
-
 	return s
 }
 
 type Server struct {
 	methods  map[string]MethodFn
-	upgrader websocket.Upgrader
+	wsserver websocket.Server
 }
 
 func (s *Server) Listen(addr string) error {
-	http.HandleFunc("/websocket", s.Handler)
-	http.HandleFunc("/sockjs/websocket", s.Handler)
+	http.Handle("/websocket", s.wsserver)
+	http.Handle("/sockjs/websocket", s.wsserver)
 	return http.ListenAndServe(addr, nil)
 }
 
@@ -37,17 +32,14 @@ func (s *Server) Method(name string, fn MethodFn) {
 	s.methods[name] = fn
 }
 
-func (s *Server) Handler(w http.ResponseWriter, r *http.Request) {
-	ws, err := s.upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		// TODO => handle non-websocket requests
-		return
-	}
-
+func (s *Server) wsHandler(ws *websocket.Conn) {
 	for {
-		msg, err := readMessage(ws)
+		var msg Message
+		if err := websocket.JSON.Receive(ws, &msg); err != nil {
+			if err != io.EOF {
+				fmt.Println("Read Error: ", err)
+			}
 
-		if err != nil {
 			break
 		}
 
@@ -59,6 +51,7 @@ func (s *Server) Handler(w http.ResponseWriter, r *http.Request) {
 		case "method":
 			handleMethod(s, ws, msg)
 		default:
+			fmt.Println("Error: unknown message type", msg)
 			// TODO => send "error" ddp message
 			break
 		}
@@ -67,38 +60,19 @@ func (s *Server) Handler(w http.ResponseWriter, r *http.Request) {
 	ws.Close()
 }
 
-func checkOrigin(r *http.Request) bool {
-	return true
+func handshake(config *websocket.Config, req *http.Request) error {
+	// accept all connections
+	return nil
 }
 
-func readMessage(req Request) (Message, error) {
-	t, str, err := req.ReadMessage()
-	msg := Message{}
-
-	if err != nil {
-		return msg, err
-	}
-
-	if t != 1 {
-		err = errors.New("DDP does not supports binary streams yet")
-		return msg, err
-	}
-
-	if err := json.Unmarshal(str, &msg); err != nil {
-		return msg, err
-	}
-
-	return msg, nil
-}
-
-func handleConnect(s *Server, res Response, m Message) error {
-	return res.WriteJSON(map[string]string{
+func handleConnect(s *Server, ws *websocket.Conn, m Message) error {
+	return websocket.JSON.Send(ws, map[string]string{
 		"msg":     "connected",
 		"session": random.Id(17),
 	})
 }
 
-func handleMethod(s *Server, res Response, m Message) error {
+func handleMethod(s *Server, ws *websocket.Conn, m Message) error {
 	fn, ok := s.methods[m.Method]
 
 	if !ok {
@@ -106,13 +80,13 @@ func handleMethod(s *Server, res Response, m Message) error {
 		return err
 	}
 
-	ctx := NewMethodContext(m, res)
+	ctx := NewMethodContext(m, ws)
 	go fn(ctx)
 
 	return nil
 }
 
-func handlePing(s *Server, res Response, m Message) error {
+func handlePing(s *Server, ws *websocket.Conn, m Message) error {
 	msg := map[string]string{
 		"msg": "pong",
 	}
@@ -121,5 +95,5 @@ func handlePing(s *Server, res Response, m Message) error {
 		msg["id"] = m.ID
 	}
 
-	return res.WriteJSON(msg)
+	return websocket.JSON.Send(ws, msg)
 }
