@@ -29,6 +29,7 @@ type Server struct {
 
 func (s *Server) Listen(addr string) error {
 	http.HandleFunc("/websocket", s.Handler)
+	http.HandleFunc("/sockjs/websocket", s.Handler)
 	return http.ListenAndServe(addr, nil)
 }
 
