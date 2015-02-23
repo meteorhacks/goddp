@@ -16,6 +16,7 @@ func New() Server {
 	s.upgrader = websocket.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
+		CheckOrigin:     checkOrigin,
 	}
 
 	return s
@@ -63,6 +64,10 @@ func (s *Server) Handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ws.Close()
+}
+
+func checkOrigin(r *http.Request) bool {
+	return true
 }
 
 func readMessage(req Request) (Message, error) {
