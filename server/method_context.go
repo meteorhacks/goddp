@@ -1,39 +1,37 @@
 package server
 
-import (
-	"errors"
-
-	"golang.org/x/net/websocket"
-)
+import "errors"
 
 type MethodContext struct {
 	ID      string
-	Args    []interface{}
-	Conn    *websocket.Conn
+	Params  []interface{}
+	Conn    Connection
 	Done    bool
 	Updated bool
 }
 
-func NewMethodContext(m Message, ws *websocket.Conn) MethodContext {
+func NewMethodContext(m Message, conn Connection) MethodContext {
 	ctx := MethodContext{}
 	ctx.ID = m.ID
-	ctx.Args = m.Params
-	ctx.Conn = ws
+	ctx.Params = m.Params
+	ctx.Conn = conn
 	return ctx
 }
 
-func (ctx *MethodContext) SendResult(r interface{}) error {
+func (ctx *MethodContext) SendResult(result interface{}) error {
 	if ctx.Done {
-		err := errors.New("already sent results for method")
+		err := errors.New("results already sent")
 		return err
 	}
 
 	ctx.Done = true
-	return websocket.JSON.Send(ctx.Conn, map[string]interface{}{
+	msg := map[string]interface{}{
 		"msg":    "result",
 		"id":     ctx.ID,
-		"result": r,
-	})
+		"result": result,
+	}
+
+	return ctx.Conn.WriteJSON(msg)
 }
 
 func (ctx *MethodContext) SendError(e string) error {
@@ -43,13 +41,15 @@ func (ctx *MethodContext) SendError(e string) error {
 	}
 
 	ctx.Done = true
-	return websocket.JSON.Send(ctx.Conn, map[string]interface{}{
+	msg := map[string]interface{}{
 		"msg": "result",
 		"id":  ctx.ID,
 		"error": map[string]string{
 			"error": e,
 		},
-	})
+	}
+
+	return ctx.Conn.WriteJSON(msg)
 }
 
 func (ctx *MethodContext) SendUpdated() error {
@@ -59,8 +59,10 @@ func (ctx *MethodContext) SendUpdated() error {
 	}
 
 	ctx.Updated = true
-	return websocket.JSON.Send(ctx.Conn, map[string]interface{}{
+	msg := map[string]interface{}{
 		"msg":     "updated",
 		"methods": []string{ctx.ID},
-	})
+	}
+
+	return ctx.Conn.WriteJSON(msg)
 }

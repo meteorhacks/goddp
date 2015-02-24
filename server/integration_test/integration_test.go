@@ -37,7 +37,7 @@ func TestStartServer(t *testing.T) {
 	s = server.New()
 
 	s.Method("double", func(ctx server.MethodContext) {
-		n, ok := ctx.Args[0].(float64)
+		n, ok := ctx.Params[0].(float64)
 
 		if !ok {
 			ctx.SendError("invalid parameters")

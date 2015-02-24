@@ -1,7 +1,6 @@
 package server
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -10,16 +9,16 @@ import (
 	"golang.org/x/net/websocket"
 )
 
-func New() Server {
-	s := Server{}
-	s.wsserver = websocket.Server{Handler: s.wsHandler, Handshake: handshake}
-	s.methods = make(map[string]MethodFn)
-	return s
+type Server struct {
+	methods  map[string]MethodHandler
+	wsserver websocket.Server
 }
 
-type Server struct {
-	methods  map[string]MethodFn
-	wsserver websocket.Server
+func New() Server {
+	s := Server{}
+	s.methods = make(map[string]MethodHandler)
+	s.wsserver = websocket.Server{Handler: s.handler, Handshake: s.handshake}
+	return s
 }
 
 func (s *Server) Listen(addr string) error {
@@ -28,16 +27,24 @@ func (s *Server) Listen(addr string) error {
 	return http.ListenAndServe(addr, nil)
 }
 
-func (s *Server) Method(name string, fn MethodFn) {
+func (s *Server) Method(name string, fn MethodHandler) {
 	s.methods[name] = fn
 }
 
-func (s *Server) wsHandler(ws *websocket.Conn) {
+func (s *Server) handshake(config *websocket.Config, req *http.Request) error {
+	// accept all connections
+	return nil
+}
+
+func (s *Server) handler(ws *websocket.Conn) {
+	conn := Conn{ws}
+	defer ws.Close()
+
 	for {
 		var msg Message
-		if err := websocket.JSON.Receive(ws, &msg); err != nil {
+		if err := conn.ReadJSON(&msg); err != nil {
 			if err != io.EOF {
-				fmt.Println("Read Error: ", err)
+				fmt.Println("Error (Read Error):", err, msg)
 			}
 
 			break
@@ -45,48 +52,41 @@ func (s *Server) wsHandler(ws *websocket.Conn) {
 
 		switch msg.Msg {
 		case "connect":
-			handleConnect(s, ws, msg)
+			s.handleConnect(&conn, msg)
 		case "ping":
-			handlePing(s, ws, msg)
+			s.handlePing(&conn, msg)
 		case "method":
-			handleMethod(s, ws, msg)
+			s.handleMethod(&conn, msg)
 		default:
-			fmt.Println("Error: unknown message type", msg)
+			fmt.Println("Error (Unknown Message Type):", msg)
 			// TODO => send "error" ddp message
 			break
 		}
 	}
-
-	ws.Close()
 }
 
-func handshake(config *websocket.Config, req *http.Request) error {
-	// accept all connections
-	return nil
-}
-
-func handleConnect(s *Server, ws *websocket.Conn, m Message) error {
-	return websocket.JSON.Send(ws, map[string]string{
+func (s *Server) handleConnect(conn Connection, m Message) {
+	msg := map[string]string{
 		"msg":     "connected",
 		"session": random.Id(17),
-	})
+	}
+
+	conn.WriteJSON(msg)
 }
 
-func handleMethod(s *Server, ws *websocket.Conn, m Message) error {
+func (s *Server) handleMethod(conn Connection, m Message) {
 	fn, ok := s.methods[m.Method]
 
 	if !ok {
-		err := errors.New(fmt.Sprintf("method %s not found", m.Method))
-		return err
+		fmt.Println("Error: (Method '%s' Not Found)", m.Method)
+		return
 	}
 
-	ctx := NewMethodContext(m, ws)
+	ctx := NewMethodContext(m, conn)
 	go fn(ctx)
-
-	return nil
 }
 
-func handlePing(s *Server, ws *websocket.Conn, m Message) error {
+func (s *Server) handlePing(conn Connection, m Message) {
 	msg := map[string]string{
 		"msg": "pong",
 	}
@@ -95,5 +95,5 @@ func handlePing(s *Server, ws *websocket.Conn, m Message) error {
 		msg["id"] = m.ID
 	}
 
-	return websocket.JSON.Send(ws, msg)
+	conn.WriteJSON(msg)
 }
