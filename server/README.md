@@ -18,7 +18,7 @@ func main() {
 }
 
 func handler(ctx server.MethodContext) {
-  n, ok := ctx.Args[0].(float64)
+  n, ok := ctx.Params[0].(float64)
 
   if !ok {
     ctx.SendError("invalid parameters")

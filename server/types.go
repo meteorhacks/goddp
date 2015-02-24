@@ -1,15 +1,11 @@
 package server
 
-type Request interface {
-	ReadMessage() (int, []byte, error)
-}
-
-type Response interface {
+type Connection interface {
+	ReadJSON(interface{}) error
 	WriteJSON(interface{}) error
 }
 
-type MethodFn func(MethodContext)
-type Handler func(*Server, Response, Message) error
+type MethodHandler func(MethodContext)
 
 // This has the all the possible fields a DDP message can have
 type Message struct {

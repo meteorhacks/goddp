@@ -6,8 +6,8 @@ import (
 )
 
 func TestSendResult(t *testing.T) {
-	r := &TestResponse{}
-	ctx := MethodContext{ID: "test-id", Res: r}
+	conn := &TestConn{}
+	ctx := MethodContext{ID: "test-id", Conn: conn}
 	err := ctx.SendResult(100)
 
 	expected := map[string]interface{}{
@@ -24,28 +24,28 @@ func TestSendResult(t *testing.T) {
 		t.Error("context must set that a result is sent")
 	}
 
-	if !reflect.DeepEqual(r._data, expected) {
+	if !reflect.DeepEqual(conn.out, expected) {
 		t.Error("invalid response for method result")
 	}
 }
 
 func TestSendResultWhenDone(t *testing.T) {
-	r := &TestResponse{}
-	ctx := MethodContext{ID: "test-id", Res: r, Done: true}
+	conn := &TestConn{}
+	ctx := MethodContext{ID: "test-id", Conn: conn, Done: true}
 	err := ctx.SendResult(100)
 
 	if err == nil {
 		t.Error("result should be sent only once")
 	}
 
-	if r._data != nil {
+	if conn.out != nil {
 		t.Error("result should be sent only once")
 	}
 }
 
 func TestSendError(t *testing.T) {
-	r := &TestResponse{}
-	ctx := MethodContext{ID: "test-id", Res: r}
+	conn := &TestConn{}
+	ctx := MethodContext{ID: "test-id", Conn: conn}
 	err := ctx.SendError("test-error")
 
 	expected := map[string]interface{}{
@@ -64,28 +64,28 @@ func TestSendError(t *testing.T) {
 		t.Error("context must set that a result is sent")
 	}
 
-	if !reflect.DeepEqual(r._data, expected) {
+	if !reflect.DeepEqual(conn.out, expected) {
 		t.Error("invalid response for method error")
 	}
 }
 
 func TestSendErrorWhenDone(t *testing.T) {
-	r := &TestResponse{}
-	ctx := MethodContext{ID: "test-id", Res: r, Done: true}
+	conn := &TestConn{}
+	ctx := MethodContext{ID: "test-id", Conn: conn, Done: true}
 	err := ctx.SendError("test-error")
 
 	if err == nil {
 		t.Error("error should be sent only once")
 	}
 
-	if r._data != nil {
+	if conn.out != nil {
 		t.Error("error should be sent only once")
 	}
 }
 
 func TestSendUpdated(t *testing.T) {
-	r := &TestResponse{}
-	ctx := MethodContext{ID: "test-id", Res: r}
+	conn := &TestConn{}
+	ctx := MethodContext{ID: "test-id", Conn: conn}
 	err := ctx.SendUpdated()
 
 	expected := map[string]interface{}{
@@ -101,21 +101,21 @@ func TestSendUpdated(t *testing.T) {
 		t.Error("context must set that updated is sent")
 	}
 
-	if !reflect.DeepEqual(r._data, expected) {
+	if !reflect.DeepEqual(conn.out, expected) {
 		t.Error("invalid response for method updated")
 	}
 }
 
 func TestSendUpdatedWhenDone(t *testing.T) {
-	r := &TestResponse{}
-	ctx := MethodContext{ID: "test-id", Res: r, Updated: true}
+	conn := &TestConn{}
+	ctx := MethodContext{ID: "test-id", Conn: conn, Updated: true}
 	err := ctx.SendUpdated()
 
 	if err == nil {
 		t.Error("updated message should be sent only once")
 	}
 
-	if r._data != nil {
+	if conn.out != nil {
 		t.Error("updated message should be sent only once")
 	}
 }

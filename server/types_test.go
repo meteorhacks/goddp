@@ -1,20 +1,36 @@
 package server
 
-type TestResponse struct {
-	_data interface{}
+import (
+	"reflect"
+	"testing"
+
+	"golang.org/x/net/websocket"
+)
+
+type TestConn struct {
+	in  interface{}
+	out interface{}
+	ws  *websocket.Conn
 }
 
-func (t *TestResponse) WriteJSON(d interface{}) error {
-	t._data = d
+func (c *TestConn) ReadJSON(msg interface{}) error {
+	in := c.in.(Message)
+	rv := reflect.ValueOf(msg).Elem()
+	rv.Set(reflect.ValueOf(&in).Elem())
 	return nil
 }
 
-type TestRequest struct {
-	Type    int
-	Message []byte
-	Error   error
+func (c *TestConn) WriteJSON(msg interface{}) error {
+	c.out = msg
+	return nil
 }
 
-func (t *TestRequest) ReadMessage() (int, []byte, error) {
-	return t.Type, t.Message, t.Error
+func TestTestReadJSON(t *testing.T) {
+	out := Message{}
+	exp := Message{ID: "test"}
+	conn := TestConn{in: exp}
+	conn.ReadJSON(&out)
+	if out.ID != exp.ID {
+		t.Error("should set test value")
+	}
 }
