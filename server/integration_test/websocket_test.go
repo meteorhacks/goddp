@@ -8,51 +8,11 @@ import (
 	"net/http"
 	"net/url"
 	"testing"
-	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/meteorhacks/goddp/server"
 )
 
-var (
-	URL    = "http://localhost:1337/websocket"
-	ORIGIN = "http://localhost:1337"
-	ADDR   = "localhost:1337"
-	s      server.Server
-)
-
-type MethodError struct {
-	Error string `json:"error"`
-}
-
-type Message struct {
-	Msg     string      `json:"msg"`
-	Session string      `json:"session"`
-	ID      string      `json:"id"`
-	Result  float64     `json:"result"`
-	Error   MethodError `json:"error"`
-}
-
-func TestStartServer(t *testing.T) {
-	s = server.New()
-
-	s.Method("double", func(ctx server.MethodContext) {
-		n, ok := ctx.Params[0].(float64)
-
-		if !ok {
-			ctx.SendError("invalid parameters")
-		} else {
-			ctx.SendResult(n * 2)
-		}
-
-		ctx.SendUpdated()
-	})
-
-	go s.Listen(":1337")
-	time.Sleep(100 * time.Millisecond)
-}
-
-func TestConnect(t *testing.T) {
+func Test_WS_Connect(t *testing.T) {
 	ws, err := newClient()
 	if err != nil {
 		t.Error("websocket connection failed")
@@ -72,7 +32,7 @@ func TestConnect(t *testing.T) {
 	}
 }
 
-func TestPingWithoutId(t *testing.T) {
+func Test_WS_PingWithoutId(t *testing.T) {
 	ws, err := newClient()
 	if err != nil {
 		t.Error("websocket connection failed")
@@ -91,7 +51,7 @@ func TestPingWithoutId(t *testing.T) {
 	}
 }
 
-func TestPingWithId(t *testing.T) {
+func Test_WS_PingWithId(t *testing.T) {
 	ws, err := newClient()
 	if err != nil {
 		t.Error("websocket connection failed")
@@ -114,7 +74,7 @@ func TestPingWithId(t *testing.T) {
 	}
 }
 
-func TestMethodResult(t *testing.T) {
+func Test_WS_MethodResult(t *testing.T) {
 	ws, err := newClient()
 	if err != nil {
 		t.Error("websocket connection failed")
@@ -141,7 +101,7 @@ func TestMethodResult(t *testing.T) {
 	}
 }
 
-func TestMethodError(t *testing.T) {
+func Test_WS_MethodError(t *testing.T) {
 	ws, err := newClient()
 	if err != nil {
 		t.Error("websocket connection failed")
@@ -169,7 +129,7 @@ func TestMethodError(t *testing.T) {
 }
 
 func newClient() (*websocket.Conn, error) {
-	u, _ := url.Parse(URL)
+	u, _ := url.Parse(WSURL)
 	conn, err := net.Dial("tcp", ADDR)
 
 	if err != nil {
