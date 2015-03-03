@@ -1,14 +1,11 @@
 package server
 
 import (
-	"net/http"
 	"reflect"
 	"testing"
-
-	"golang.org/x/net/websocket"
 )
 
-func TestAddMethod(t *testing.T) {
+func Test_Server_Method(t *testing.T) {
 	s := New()
 	s.Method("testfn", func(MethodContext) {})
 	if _, ok := s.methods["testfn"]; !ok {
@@ -16,16 +13,9 @@ func TestAddMethod(t *testing.T) {
 	}
 }
 
-func TestHandshake(t *testing.T) {
-	s := New()
-	if err := s.handshake(&websocket.Config{}, &http.Request{}); err != nil {
-		t.Error("Handshake error")
-	}
-}
-
-func TestHandleConnect(t *testing.T) {
+func Test_Server_HandleConnect(t *testing.T) {
 	s := &Server{}
-	m := Message{}
+	m := &Message{}
 	c := &TestConn{}
 
 	s.handleConnect(c, m)
@@ -40,9 +30,9 @@ func TestHandleConnect(t *testing.T) {
 	}
 }
 
-func TestAvailableMethod(t *testing.T) {
+func Test_Server_HandleMethod(t *testing.T) {
 	s := &Server{methods: make(map[string]MethodHandler)}
-	m := Message{Method: "test"}
+	m := &Message{Method: "test"}
 	c := &TestConn{}
 	ch := make(chan bool)
 
@@ -56,9 +46,9 @@ func TestAvailableMethod(t *testing.T) {
 	<-ch
 }
 
-func TestHandlePingWithoutID(t *testing.T) {
+func Test_Server_HandlePing_WithoutID(t *testing.T) {
 	s := &Server{}
-	m := Message{}
+	m := &Message{}
 	c := &TestConn{}
 
 	s.handlePing(c, m)
@@ -72,9 +62,9 @@ func TestHandlePingWithoutID(t *testing.T) {
 	}
 }
 
-func TestHandlePingWithID(t *testing.T) {
+func Test_Server_HandlePing_WithID(t *testing.T) {
 	s := &Server{}
-	m := Message{ID: "test-id"}
+	m := &Message{ID: "test-id"}
 	c := &TestConn{}
 
 	s.handlePing(c, m)

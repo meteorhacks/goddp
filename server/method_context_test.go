@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestSendResult(t *testing.T) {
+func Test_MethodContext_SendResult(t *testing.T) {
 	conn := &TestConn{}
 	ctx := MethodContext{ID: "test-id", Conn: conn}
 	err := ctx.SendResult(100)
@@ -29,7 +29,7 @@ func TestSendResult(t *testing.T) {
 	}
 }
 
-func TestSendResultWhenDone(t *testing.T) {
+func Test_MethodContext_SendResult_WhenDone(t *testing.T) {
 	conn := &TestConn{}
 	ctx := MethodContext{ID: "test-id", Conn: conn, Done: true}
 	err := ctx.SendResult(100)
@@ -43,7 +43,7 @@ func TestSendResultWhenDone(t *testing.T) {
 	}
 }
 
-func TestSendError(t *testing.T) {
+func Test_MethodContext_SendError(t *testing.T) {
 	conn := &TestConn{}
 	ctx := MethodContext{ID: "test-id", Conn: conn}
 	err := ctx.SendError("test-error")
@@ -69,7 +69,7 @@ func TestSendError(t *testing.T) {
 	}
 }
 
-func TestSendErrorWhenDone(t *testing.T) {
+func Test_MethodContext_SendError_WhenDone(t *testing.T) {
 	conn := &TestConn{}
 	ctx := MethodContext{ID: "test-id", Conn: conn, Done: true}
 	err := ctx.SendError("test-error")
@@ -83,7 +83,7 @@ func TestSendErrorWhenDone(t *testing.T) {
 	}
 }
 
-func TestSendUpdated(t *testing.T) {
+func Test_MethodContext_SendUpdated(t *testing.T) {
 	conn := &TestConn{}
 	ctx := MethodContext{ID: "test-id", Conn: conn}
 	err := ctx.SendUpdated()
@@ -106,7 +106,7 @@ func TestSendUpdated(t *testing.T) {
 	}
 }
 
-func TestSendUpdatedWhenDone(t *testing.T) {
+func Test_MethodContext_SendUpdated_WhenDone(t *testing.T) {
 	conn := &TestConn{}
 	ctx := MethodContext{ID: "test-id", Conn: conn, Updated: true}
 	err := ctx.SendUpdated()

@@ -1,8 +1,13 @@
 package server
 
+type SockJSSession interface {
+	Recv() (string, error)
+	Send(string) error
+}
+
 type Connection interface {
-	ReadJSON(interface{}) error
-	WriteJSON(interface{}) error
+	ReadMessage() (Message, error)
+	WriteMessage(interface{}) error
 }
 
 type MethodHandler func(MethodContext)

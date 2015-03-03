@@ -10,7 +10,7 @@ type MethodContext struct {
 	Updated bool
 }
 
-func NewMethodContext(m Message, conn Connection) MethodContext {
+func NewMethodContext(m *Message, conn Connection) MethodContext {
 	ctx := MethodContext{}
 	ctx.ID = m.ID
 	ctx.Params = m.Params
@@ -31,7 +31,7 @@ func (ctx *MethodContext) SendResult(result interface{}) error {
 		"result": result,
 	}
 
-	return ctx.Conn.WriteJSON(msg)
+	return ctx.Conn.WriteMessage(msg)
 }
 
 func (ctx *MethodContext) SendError(e string) error {
@@ -49,7 +49,7 @@ func (ctx *MethodContext) SendError(e string) error {
 		},
 	}
 
-	return ctx.Conn.WriteJSON(msg)
+	return ctx.Conn.WriteMessage(msg)
 }
 
 func (ctx *MethodContext) SendUpdated() error {
@@ -64,5 +64,5 @@ func (ctx *MethodContext) SendUpdated() error {
 		"methods": []string{ctx.ID},
 	}
 
-	return ctx.Conn.WriteJSON(msg)
+	return ctx.Conn.WriteMessage(msg)
 }
