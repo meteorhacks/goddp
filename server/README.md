@@ -8,7 +8,7 @@ DDP server implemented with go.
 package main
 
 import (
-  "github.com/meteorhacks/goddp/server"
+  "gopkg.in/meteorhacks/goddp.v1/server"
 )
 
 func main() {

@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/meteorhacks/goddp/server"
+	"gopkg.in/meteorhacks/goddp.v1/server"
 )
 
 var (

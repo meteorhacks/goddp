@@ -5,9 +5,9 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/meteorhacks/goddp/utils/random"
 	"github.com/meteorhacks/sockjs-go/sockjs"
 	"golang.org/x/net/websocket"
+	"gopkg.in/meteorhacks/goddp.v1/utils/random"
 )
 
 type Server struct {
