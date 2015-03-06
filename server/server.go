@@ -106,7 +106,7 @@ func (s *Server) handleMethod(conn Connection, m *Message) {
 	fn, ok := s.methods[m.Method]
 
 	if !ok {
-		fmt.Println("Error: (Method '%s' Not Found)", m.Method)
+		fmt.Println("Error: (Method Not Found)", m.Method)
 		return
 	}
 
